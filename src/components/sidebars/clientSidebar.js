@@ -13,15 +13,11 @@ const ClientSidebar = () => {
           <>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-tachometer-alt fa-fw me-3"></i>
-              <Link to="/admin/dashboard">Dashboard Admin</Link>
-            </a>
-            <a className="list-group-item list-group-item-action py-2 ripple">
-              <i className="fas fa-tachometer-alt fa-fw me-3"></i>
               <Link to="/admin/">Gerenciar acervo</Link>
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-users fa-fw me-3"></i>
-              <Link to="/admin/manage-users">Gerenciar Usuários</Link>
+              <Link to="/admin/users">Gerenciar Usuários</Link>
             </a>
           </>
         );

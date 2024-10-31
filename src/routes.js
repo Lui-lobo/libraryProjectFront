@@ -9,6 +9,7 @@ import EmployeeDashboard from './components/dashboards/employeeDashboard';
 import AdminDashboard from './components/dashboards/adminDashboard';
 import SearchHome from './components/search/searchHome';
 import Profile from './components/profile/profile';
+import UserManagement from './components/search/userSearch';
 
 const AppRoutes = () => {
   return (
@@ -27,6 +28,7 @@ const AppRoutes = () => {
  
       <Route path="/admin" element={<AdminDashboard />}>
         <Route path="/admin/" element={<SearchHome />} />
+        <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/profile" element={<Profile />} />
       </Route>
 
