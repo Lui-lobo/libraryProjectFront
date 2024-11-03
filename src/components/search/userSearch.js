@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   fetchAllUsers, fetchUserByQuery, fetchUserDetailsById,
-  updateUserDetails, addUser, inactivateUser, activateUser
+  updateUserDetails, addUser, inactivateUser, activateUser, updateCustomer, updateEmployee
 } from '../../api/usersApi'; // Importando API para buscar detalhes dos usuários
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -10,19 +10,22 @@ const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [role, setRole] = useState('');
+  const [professionalPosition, setProfessionalPosition] = useState('');
+  const [validatorId, setValidatorId] = useState('');
   const [searchType, setSearchType] = useState('name');
   const [noResults, setNoResults] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [userDetails, setUserDetails] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', password: '', role: '', professionalPosition: '', address: '' });
   const [updateError, setUpdateError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: '' });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: '', professionalPosition: '' });
   const [addError, setAddError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(5);
+  const isRoleRestricted = role === 'Administrador' || (role === 'Funcionario' && professionalPosition === 'gestor');
 
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
@@ -36,6 +39,10 @@ const UserManagement = () => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (userData && userData.role) {
       setRole(userData.role);
+      setValidatorId(userData.id);
+      if(userData.role === 'funcionario') {
+        setProfessionalPosition(userData.professionalPosition);
+      }
     }
 
     try {
@@ -92,7 +99,7 @@ const UserManagement = () => {
 
   const handleEditUser = async (user) => {
     try {
-      setEditForm({ name: user.name, email: user.email, role: user.role });
+      setEditForm({ name: user.name, email: user.email, password: user.password, role: user.role, professionalPosition: user.professionalPosition, address: user.address });
       setUserDetails(user);
       setShowEditModal(true);
       setUpdateError('');
@@ -108,9 +115,15 @@ const UserManagement = () => {
 
   const handleConfirmEdit = async () => {
     try {
-      await updateUserDetails(userDetails.id, editForm);
+      if(editForm.role === 'Funcionario') {
+        await updateEmployee(userDetails.id, editForm);
+      } else {
+        // Edita um cliente
+        await updateCustomer(userDetails.id, editForm);
+      }
+
       setShowEditModal(false);
-      setEditForm({ name: '', email: '', role: '' });
+      setEditForm({ name: '', email: '', password: '', professionalPosition: '', address: '' });
       setUpdateError('');
       await fetchUsers(); // Atualiza a lista de usuários
     } catch (error) {
@@ -125,18 +138,23 @@ const UserManagement = () => {
 
   const handleCloseAddModal = () => {
     setShowAddModal(false);
-    setNewUser({ name: '', email: '', role: '' });
+    setNewUser({ name: '', email: '', password: '', role: '', professionalPosition: '' });
     setAddError('');
   };
 
   const handleAddUser = async () => {
     try {
-      if (!newUser.name || !newUser.email || !newUser.role) {
+      if (!newUser.name || !newUser.email || !newUser.password || !newUser.role) {
         setAddError('Preencha todos os campos.');
         return;
       }
 
-      await addUser(newUser);
+      if(newUser.role === 'Funcionario' && !newUser.professionalPosition) {
+        setAddError('Preencha todos os campos.');
+        return;
+      }
+
+      await addUser(newUser, validatorId);
       await fetchUsers();
       handleCloseAddModal();
     } catch (error) {
@@ -198,6 +216,7 @@ const UserManagement = () => {
             <button className="btn btn-info me-2" onClick={() => handleViewDetails(user.id)}>
               Visualizar Detalhes
             </button>
+            <button className="btn btn-primary me-2" onClick={() => handleEditUser(user)}>Editar</button>
             {user.active ? (
               <button className="btn btn-danger" onClick={() => handleInactivateUser(user.id)}>Inativar</button>
             ) : (
@@ -225,11 +244,18 @@ const UserManagement = () => {
 
   return (
     <div className="container mt-4">
-      {role === 'Administrador' && (
-        <button className="btn btn-success mb-3" onClick={handleOpenAddModal}>
-          Cadastrar um novo Usuário
+     <div className="container mt-4">
+      <div className="d-flex align-items-center mb-3">
+        <button onClick={handleBackToAllUsers} className="btn btn-secondary me-2">
+          Reiniciar Listagem de Usuários
         </button>
-      )}
+        {(role === 'Administrador' || role === 'Funcionario') && (
+          <button className="btn btn-success" onClick={handleOpenAddModal}>
+            Cadastrar um novo Usuário
+          </button>
+        )}
+      </div>
+    </div>
 
       <h2 className="mb-4">Busca de Usuários</h2>
       <form onSubmit={handleSearch} className="mb-4">
@@ -254,7 +280,12 @@ const UserManagement = () => {
           <button type="submit" className="btn btn-primary">Buscar</button>
         </div>
         {errorMessage && <div className="alert alert-danger mt-3">{errorMessage}</div>}
-        {noResults && <div className="alert alert-warning mt-3">Nenhum resultado encontrado.</div>}
+        {noResults && <div className="alert alert-warning mt-3">
+          Nenhum usuário encontrado.
+          <div className="mt-3">
+            <button onClick={handleBackToAllUsers} className="btn btn-secondary">Voltar para a listagem de usuários</button>
+          </div>
+          </div>}
       </form>
 
       <div className="table-responsive">
@@ -345,15 +376,43 @@ const UserManagement = () => {
                 />
                 </div>
                 <div className="mb-3">
-                <label className="form-label">Role</label>
+                <label className="form-label">Senha</label>
                 <input
                     type="text"
                     className="form-control"
-                    name="role"
-                    value={editForm.role}
+                    name="password"
+                    value={editForm.password}
                     onChange={handleEditFormChange}
                 />
                 </div>
+                {/* Cargo do funcionário (aparece somente se "Funcionário" for selecionado) */}
+                {editForm.role === 'Funcionario' && (
+                      <div className="mb-3">
+                        <label className="form-label">Cargo</label>
+                        <select
+                          className="form-select"
+                          name="professionalPosition"
+                          value={editForm.professionalPosition}
+                          onChange={handleEditFormChange}
+                        >
+                          <option value="assistente">Assistente</option>
+                          <option value="analista">Analista</option>
+                          <option value="gestor">Gestor</option>
+                        </select>
+                      </div>
+                    )}
+                    {editForm.role === 'Cliente' && (
+                      <div className="mb-3">
+                        <label className="form-label">Endereço</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            name="address"
+                            value={editForm.address}
+                            onChange={handleEditFormChange}
+                        />
+                      </div>
+                    )}
                 {updateError && <div className="alert alert-danger">{updateError}</div>}
             </form>
             </div>
@@ -402,15 +461,45 @@ const UserManagement = () => {
                     />
                     </div>
                     <div className="mb-3">
-                    <label className="form-label">Role</label>
+                    <label className="form-label">Senha</label>
                     <input
                         type="text"
                         className="form-control"
+                        name="password"
+                        value={newUser.password}
+                        onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Função do usuário</label>
+                      <select
+                        className="form-select"
                         name="role"
                         value={newUser.role}
                         onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    />
+                      >
+                        <option value="">Selecione uma função</option>
+                        {isRoleRestricted && <option value="Funcionario">Funcionário</option>}
+                        <option value="Cliente">Cliente</option>
+                      </select>
                     </div>
+                    {/* Cargo do funcionário (aparece somente se "Funcionário" for selecionado) */}
+                    {newUser.role === 'Funcionario' && (
+                      <div className="mb-3">
+                        <label className="form-label">Cargo</label>
+                        <select
+                          className="form-select"
+                          name="professionalPosition"
+                          value={newUser.professionalPosition}
+                          onChange={(e) => setNewUser({ ...newUser, professionalPosition: e.target.value })}
+                        >
+                          <option value="">Selecione um cargo</option>
+                          <option value="assistente">Assistente</option>
+                          <option value="analista">Analista</option>
+                          <option value="gestor">Gestor</option>
+                        </select>
+                      </div>
+                    )}
                     {addError && <div className="alert alert-danger">{addError}</div>}
                 </form>
                 </div>

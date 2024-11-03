@@ -24,7 +24,11 @@ const AppRoutes = () => {
         <Route path="/client/profile" element={<Profile />} />
       </Route>
 
-      <Route path="/employee" element={<EmployeeDashboard />} />
+      <Route path="/employee" element={<EmployeeDashboard />} >
+        <Route path="/employee/" element={<SearchHome />} />
+        <Route path="/employee/users" element={<UserManagement />} />
+        <Route path="/employee/profile" element={<Profile />} />
+      </Route>
  
       <Route path="/admin" element={<AdminDashboard />}>
         <Route path="/admin/" element={<SearchHome />} />

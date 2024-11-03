@@ -27,11 +27,11 @@ const ClientSidebar = () => {
           <>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-book fa-fw me-3"></i>
-              <Link to="/employee/dashboard">Dashboard Funcionário</Link>
+              <Link to="/employee/">Gerenciar Acervo</Link>
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-book-reader fa-fw me-3"></i>
-              <Link to="/employee/manage-loans">Gerenciar Empréstimos</Link>
+              <Link to="/employee/users">Gerenciar usuários</Link>
             </a>
           </>
         );

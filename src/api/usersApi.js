@@ -3,15 +3,6 @@ import axios from 'axios';
 
 const BASE_URL = 'http://localhost:8080'; // URL base da API
 
-// Função para determinar a rota correta com base no papel do usuário
-const getRouteForRole = (endpoint) => {
-  const userData = JSON.parse(localStorage.getItem('user'));
-  if (userData && userData.role === 'Cliente') {
-    return `${BASE_URL}/api/bookCollection/active${endpoint}`;
-  }
-  return `${BASE_URL}/api/bookCollection${endpoint}`;
-};
-
 // Busca todos os usuários
 export const fetchAllUsers = async () => {
   try {
@@ -30,9 +21,9 @@ export const fetchUserByQuery = async (query, type) => {
 
   // Determina a URL correta com base no tipo de busca
   if (type === 'email') {
-    url = getRouteForRole(`/getBookOnCollectionByIsbn?isbn=${query}`);
+    url = `${BASE_URL}/api/users/getUserByEmail?email=${query}`;
   } else {
-    url = getRouteForRole(`/getBookOnCollectionByTitle?title=${query}`);
+    url = `${BASE_URL}/api/users/getUserByName?name=${query}`;
   }
 
   const response = await fetch(url);
@@ -67,33 +58,64 @@ export const updateUserDetails = async (bookId, data) => {
 }
 
 // Função para cadastrar um novo livro
-export const addUser = async (bookData) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/api/bookCollection/add`, bookData);
-    return response.data;
-  } catch (error) {
-    console.error("Erro ao cadastrar livro:", error);
-    throw error;
+export const addUser = async (newUserData, validatorId) => {
+  if(newUserData.role === 'Funcionario') {
+    try {
+      const response = await axios.post(`${BASE_URL}/api/users/admin/createEmployee?adminId=${validatorId}`, newUserData);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao cadastrar usuário:", error);
+      throw error;
+    }
+  } else {
+    try {
+      const response = await axios.post(`${BASE_URL}/api/users/createCustomer?userId=${validatorId}`, newUserData);
+      return response.data;
+    } catch (error) {
+      console.error("Erro ao cadastrar usuário:", error);
+      throw error;
+    }
   }
 };
 
 // Inativa um livro pelo ID
-export const inactivateUser = async (bookId) => {
+export const inactivateUser = async (userId) => {
   try {
-    const response = await axios.put(`${BASE_URL}/api/books/inactivate/${bookId}`);
+    const response = await axios.put(`${BASE_URL}/api/users/changeUserActiveStatus/${userId}`);
     return response.data;
   } catch (error) {
-    console.error("Erro ao inativar o livro:", error);
+    console.error("Erro ao inativar o usuário:", error);
     throw error;
   }
 };
 
-export const activateUser = async (bookId) => {
+export const activateUser = async (userId) => {
   try {
-    const response = await axios.put(`${BASE_URL}/api/books/activate/${bookId}`);
+    const response = await axios.put(`${BASE_URL}/api/users/changeUserActiveStatus/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao ativar o usuário:", error);
+    throw error;
+  }
+};
+
+export const updateEmployee = async (employeeId, employeeData) => {
+  try {
+    const response = await axios.put(`${BASE_URL}/api/users/updateEmployee/${employeeId}`, employeeData);
     return response.data;
   } catch (error) {
     console.error("Erro ao inativar o livro:", error);
     throw error;
   }
-};
+}
+
+export const updateCustomer = async (customerId, customerData) => {
+  try {
+    // Retiramos informações pertencentes a outras funções
+    const response = await axios.put(`${BASE_URL}/api/users/updateCustomer/${customerId}`, customerData);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao inativar o livro:", error);
+    throw error;
+  }
+}

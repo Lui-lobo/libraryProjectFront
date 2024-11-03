@@ -1,10 +1,14 @@
 // src/EmployeeDashboard.js
 import React from 'react';
+import { Link, useNavigate, Outlet } from 'react-router-dom';
+import '../dashboards/css/dashboard.css'
+import ClientSidebar from '../sidebars/clientSidebar';
 
 const EmployeeDashboard = () => {
   return (
     <div>
-      <h1>Painel do Funcionário</h1>
+      <ClientSidebar />
+      <Outlet></Outlet>
       {/* Aqui você pode adicionar as funcionalidades específicas para o funcionário */}
     </div>
   );

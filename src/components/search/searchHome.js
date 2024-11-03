@@ -280,11 +280,16 @@ const fetchBooks = async () => {
   return (
     <div className="container mt-4">
       {/* Exibir botão de cadastrar livros apenas para funcionários e administradores */}
-      {(role === 'Administrador' || role === 'Funcionario') && (
-        <button className="btn btn-success mb-3" onClick={handleOpenAddModal}>
-          Cadastrar um novo Livro
-        </button>
-      )}
+      <div className="d-flex align-items-center mb-3">
+          <div className="">
+            <button onClick={handleBackToAllBooks} className="btn btn-secondary">Reiniciar listagem</button>
+          </div>
+          {(role === 'Administrador' || role === 'Funcionario') && (
+            <button className="btn btn-success" onClick={handleOpenAddModal}>
+              Cadastrar um novo Livro
+            </button>
+          )}
+      </div>
  
       <h2 className="mb-4">Busca de Livros</h2>
       <form onSubmit={handleSearch} className="mb-4">
