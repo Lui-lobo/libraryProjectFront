@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { fetchAllBooksOnCollection, fetchBooksByQuery, fetchBookDetailsByIsbn, updateBookDetails, addBook, inactivateBook, activateBook } from '../../api/booksApis'; // Importando API para buscar detalhes
+import { 
+   fetchAllBooksOnCollection, fetchBooksByQuery, fetchBookDetailsByIsbn,
+   updateBookDetails, addBook, inactivateBook, activateBook, updateBookQuantity 
+} from '../../api/booksApis'; // Importando API para buscar detalhes
 import { Link, useNavigate } from 'react-router-dom';
 
 const ClientHome = () => {
@@ -12,10 +15,14 @@ const ClientHome = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [bookDetails, setBookDetails] = useState(null); // Estado para armazenar os detalhes do livro
-  // Etstados de edição
+  // Estados de edição
   const [showEditModal, setShowEditModal] = useState(false); // Estado para modal de edição
   const [editForm, setEditForm] = useState({ title: '', author: '', isbn: '', genre: '' }); // Estado do formulário de edição
   const [updateError, setUpdateError] = useState('');
+  // Estados de edição de quantidade de livro
+  const [showEditQuantityModal, setShowEditQuantityModal] = useState(false);
+  const [editQuantity, setEditQuantity] = useState(0);
+  const [quantityError, setQuantityError] = useState('');
   // Estados de adição
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBook, setNewBook] = useState({
@@ -136,6 +143,33 @@ const fetchBooks = async () => {
           } else {
             setUpdateError('Erro ao atualizar livro.'); // Mensagem genérica de erro
           }
+    }
+  };
+
+  const handleEditQuantity = (collection) => {
+    setEditQuantity(collection.availableCopies); // Define a quantidade atual
+    setBookDetails(collection); // Armazena os detalhes do livro
+    setShowEditQuantityModal(true); // Abre o modal de edição
+    setQuantityError(''); // Limpa qualquer erro anterior
+  };
+
+  const handleConfirmEditQuantity = async () => {
+    if (editQuantity < 0) {
+      setQuantityError('A quantidade não pode ser negativa.');
+      return;
+    }
+
+    try {
+      const updatedBook = { availableCopies: editQuantity };
+      await updateBookQuantity(bookDetails.id, updatedBook);
+      setShowEditQuantityModal(false);
+      // Atualiza a lista de livros localmente
+      const updatedBooks = books.map((book) =>
+        book.book.id === bookDetails.id ? { ...book, availableCopies: editQuantity } : book
+      );
+      setBooks(updatedBooks);
+    } catch (error) {
+      setQuantityError('Erro ao atualizar quantidade.'); // Mensagem genérica de erro
     }
   };
 
@@ -266,6 +300,7 @@ const fetchBooks = async () => {
               Visualizar Detalhes
             </button>
             <button className="btn btn-primary me-2"  onClick={() => handleEditBook(book)}>Editar</button>
+            <button className="btn btn-secondary me-2" onClick={() => handleEditQuantity(book)}>Editar Quantidade Disponível</button> {/* Novo botão */}
             {book.active ? (
               <button className="btn btn-danger" onClick={() => handleInactivateBook(book.id)}>Inativar</button>
             ) : (
@@ -334,7 +369,7 @@ const fetchBooks = async () => {
               <p>{collection.book.title}</p>
               <p>Autor: {collection.book.author}</p>
               <p>ISBN: {collection.book.isbn}</p>
-              <p>Quantidade disponível: {collection.availableCopies}</p>
+              <p>Quantidade disponível: {collection.book.availableCopies = collection.availableCopies}</p>
 
               {/* Renderiza os botões de ação */}
               {renderActionButtons(collection.book)}
@@ -523,6 +558,38 @@ const fetchBooks = async () => {
                 </button>
                 <button type="button" className="btn btn-primary" onClick={handleAddBook}>
                   Cadastrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditQuantityModal && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Editar Quantidade Disponível</h5>
+                <button type="button" className="btn-close" onClick={() => setShowEditQuantityModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <label htmlFor="quantity" className="form-label">Quantidade Disponível</label>
+                <input
+                  type="number"
+                  id="quantity"
+                  className="form-control"
+                  value={editQuantity}
+                  onChange={(e) => setEditQuantity(e.target.value)}
+                />
+                {quantityError && <div className="alert alert-danger mt-2">{quantityError}</div>}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditQuantityModal(false)}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleConfirmEditQuantity}>
+                  Confirmar
                 </button>
               </div>
             </div>

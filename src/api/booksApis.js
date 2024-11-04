@@ -95,7 +95,17 @@ export const activateBook = async (bookId) => {
     const response = await axios.put(`${BASE_URL}/api/books/activate/${bookId}`);
     return response.data;
   } catch (error) {
-    console.error("Erro ao inativar o livro:", error);
+    console.error("Erro ao ativar o livro:", error);
     throw error;
   }
 };
+
+export const updateBookQuantity = async (collectionId, updateData) => {
+  try {
+    const response = await axios.put(`${BASE_URL}/api/bookCollection/edit?id=${collectionId}`, updateData);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao atualizar a quantidade do livro:", error);
+    throw error;
+  }
+}
