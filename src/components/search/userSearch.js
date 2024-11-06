@@ -149,6 +149,13 @@ const UserManagement = () => {
         return;
       }
 
+      // Verifica se o email tem um formato válido
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newUser.email)) {
+        setAddError('Email inválido.');
+        return;
+      }
+
       if(newUser.role === 'Funcionario' && !newUser.professionalPosition) {
         setAddError('Preencha todos os campos.');
         return;

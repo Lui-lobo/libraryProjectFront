@@ -14,13 +14,39 @@ const Register = () => {
 
   const navigate = useNavigate();
 
+  // Função para validar o formato do email
+  const validateEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Validações
+    if (!name || !email || !password || !confirmPassword || !address) {
+      setMessage('Todos os campos são obrigatórios.');
+      setMessageType('danger');
+      setTimeout(() => {
+        setMessage(null);
+        setMessageType('');
+      }, 3000);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setMessage('Por favor, insira um email válido.');
+      setMessageType('danger');
+      setTimeout(() => {
+        setMessage(null);
+        setMessageType('');
+      }, 3000);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setMessage('As senhas não coincidem.');
       setMessageType('danger');
-      // Limpar a mensagem após 3 segundos
       setTimeout(() => {
         setMessage(null);
         setMessageType('');
@@ -30,12 +56,11 @@ const Register = () => {
 
     try {
       const response = await api.post('/api/users/public/createCustomer', { name, email, password, address });
-      // Aqui você pode redirecionar o usuário para a página de login ou mostrar uma mensagem de sucesso
       // Caso de sucesso
       if (response.status === 200) {
         setMessage('Usuário cadastrado com sucesso!');
         setMessageType('success');
-  
+
         // Redirecionar para a página de login após 3 segundos
         setTimeout(() => {
           navigate('/');
@@ -43,7 +68,7 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
-      // Aqui você pode mostrar uma mensagem de erro
+      // Mensagem de erro
       if (error.response && error.response.status === 400) {
         setMessage(`Falha ao cadastrar, ${error.response.data}`);
         setMessageType('danger');
@@ -52,7 +77,6 @@ const Register = () => {
         setMessageType('danger');
       }
 
-      // Limpar a mensagem após 3 segundos
       setTimeout(() => {
         setMessage(null);
         setMessageType('');
@@ -113,11 +137,11 @@ const Register = () => {
           />
         </div>
         <div className="mb-3">
-          <label htmlFor="password" className="form-label">Endereço</label>
+          <label htmlFor="address" className="form-label">Endereço</label>
           <input 
-            type="setAddress" 
+            type="text" 
             className="form-control" 
-            id="setAddress" 
+            id="address" 
             placeholder="Digite seu endereço" 
             value={address}
             onChange={(e) => setAddress(e.target.value)}
@@ -126,6 +150,7 @@ const Register = () => {
         </div>
         <button type="submit" className="btn btn-primary">Cadastrar</button>
       </form>
+      
       {/* Exibir mensagem de sucesso ou erro */}
       {message && (
         <div className={`alert alert-${messageType} mt-3`} role="alert">
@@ -134,7 +159,7 @@ const Register = () => {
       )}
 
       <p className="mt-3">
-        Já possui uma conta ? <Link to="/">Ir para login</Link>
+        Já possui uma conta? <Link to="/">Ir para login</Link>
       </p>
     </div>
   );
