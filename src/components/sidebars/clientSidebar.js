@@ -19,6 +19,14 @@ const ClientSidebar = () => {
               <i className="fas fa-users fa-fw me-3"></i>
               <Link to="/admin/users">Gerenciar Usuários</Link>
             </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/admin/reservations">Gerenciar Reservas</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-history fa-fw me-3"></i>
+              <Link to="/admin/loans">Gerenciar Emprestimos</Link>
+            </a>
           </>
         );
 
@@ -33,6 +41,14 @@ const ClientSidebar = () => {
               <i className="fas fa-book-reader fa-fw me-3"></i>
               <Link to="/employee/users">Gerenciar usuários</Link>
             </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/employee/reservations">Gerenciar Reservas</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-history fa-fw me-3"></i>
+              <Link to="/employee/loans">Gerenciar Emprestimos</Link>
+            </a>
           </>
         );
 
@@ -45,11 +61,11 @@ const ClientSidebar = () => {
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-bookmark fa-fw me-3"></i>
-              <Link to="/client/reserved-books">Livros Reservados</Link>
+              <Link to="/client/reservations">Livros Reservados</Link>
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-history fa-fw me-3"></i>
-              <Link to="/client/loan-history">Histórico de Empréstimos</Link>
+              <Link to="/client/loans">Emprestimos</Link>
             </a>
           </>
         );

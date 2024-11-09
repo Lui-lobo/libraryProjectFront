@@ -10,6 +10,8 @@ import AdminDashboard from './components/dashboards/adminDashboard';
 import SearchHome from './components/search/searchHome';
 import Profile from './components/profile/profile';
 import UserManagement from './components/search/userSearch';
+import ReservationManagement from './components/reservation/reservationManagement';
+import LoanManagement from './components/loan/loanManagement';
 
 const AppRoutes = () => {
   return (
@@ -22,18 +24,24 @@ const AppRoutes = () => {
       <Route path="/client" element={<ClientDashboard />}>
         <Route path="/client/" element={<SearchHome />} />
         <Route path="/client/profile" element={<Profile />} />
+        <Route path="/client/reservations" element={<ReservationManagement />}></Route>
+        <Route path="/client/loans" element={<LoanManagement />}></Route>
       </Route>
 
       <Route path="/employee" element={<EmployeeDashboard />} >
         <Route path="/employee/" element={<SearchHome />} />
         <Route path="/employee/users" element={<UserManagement />} />
         <Route path="/employee/profile" element={<Profile />} />
+        <Route path="/employee/reservations" element={<ReservationManagement />}></Route>
+        <Route path="/employee/loans" element={<LoanManagement />}></Route>
       </Route>
  
       <Route path="/admin" element={<AdminDashboard />}>
         <Route path="/admin/" element={<SearchHome />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/profile" element={<Profile />} />
+        <Route path="/admin/reservations" element={<ReservationManagement />}></Route>
+        <Route path="/admin/loans" element={<LoanManagement />}></Route>
       </Route>
 
     </Routes>

@@ -10,6 +10,7 @@ const ClientHome = () => {
   const [books, setBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [role, setRole] = useState('');
+  const [userId, setUserId] = useState('');
   const [searchType, setSearchType] = useState('title');
   const [noResults, setNoResults] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -34,6 +35,14 @@ const ClientHome = () => {
     copies: 0
   });
   const [addError, setAddError] = useState('');
+  // Estados de reserva
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [reservationBook, setReservationBook] = useState(null);
+  const [reservationUserId, setReservationUserId] = useState(null);
+  // Estado para mostrar/ocultar o modal de confirmação de empréstimo
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [loanBook, setLoanBook] = useState(null);
+  const [loanUserId, setLoanUserId] = useState(null);
   // Logica de paginação
   const [currentPage, setCurrentPage] = useState(1); // Página atual
   const [booksPerPage] = useState(2); // Número de livros por página
@@ -52,6 +61,7 @@ const fetchBooks = async () => {
   const userData = JSON.parse(localStorage.getItem('user'));
   if (userData && userData.role) {
     setRole(userData.role);
+    setUserId(userData.id);
   }
 
   try {
@@ -243,6 +253,73 @@ const fetchBooks = async () => {
     setBookDetails(null);
   };
 
+  
+// Função para abrir o modal de reserva
+const handleOpenReservationModal = (book) => {
+  setReservationBook(book);  // Armazena o livro selecionado
+  setReservationUserId(userId);  // Armazena o ID do usuário
+  setShowReservationModal(true);
+};
+
+// Função para fechar o modal de reserva
+const handleCloseReservationModal = () => {
+  setShowReservationModal(false);
+  setReservationBook(null);  // Armazena o livro selecionado
+  setReservationUserId(null);  // Armazena o ID do usuário
+};
+
+const handleConfirmReservation = async (book, userId) => {
+  try {
+    if (!book || !userId) {
+      throw new Error("Faltando informações para realizar a solicitação.");
+    }
+    console.log("Livro:", book, "Usuário:", userId);
+    // Lógica para lidar com sucesso da reserva (exibir mensagem ou atualizar estado)
+    alert('Solicitação de Reserva realizada com sucesso!');
+  } catch (error) {
+    // Lógica para lidar com erro na reserva
+    alert('Erro ao realizar a solicitação de reserva: ' + error.message);
+  } finally {
+    // Fechar o modal após tentativa de reserva
+    setReservationBook(null);  // Limpa o estado do livro
+    setReservationUserId(null);  // Limpa o estado do usuário
+    handleCloseReservationModal();
+  }
+};
+
+  // Função para abrir o modal de confirmação de empréstimo
+  const handleOpenLoanModal = (book) => {
+    setLoanBook(book);  // Armazena o livro selecionado
+    setLoanUserId(userId);  // Armazena o ID do usuário
+    setShowLoanModal(true);
+  };
+
+  // Função para fechar o modal de confirmação de empréstimo
+  const handleCloseLoanModal = () => {
+    setShowLoanModal(false);
+    setLoanBook(null);  // Limpa o estado do livro
+    setLoanUserId(null);  // Limpa o estado do usuário
+  };
+
+  // Função para chamar a API de solicitação de empréstimo
+  const handleConfirmLoan = async (book, userId) => {
+    try {
+      if (!book || !userId) {
+        throw new Error("Faltando informações para realizar a solicitação.");
+      }
+      console.log("Livro:", book, "Usuário:", userId);
+      // Aqui você faria a chamada da API para registrar a solicitação de empréstimo
+      alert('Solicitação de Empréstimo realizada com sucesso!');
+    } catch (error) {
+      alert('Erro ao realizar a solicitação de empréstimo: ' + error.message);
+    } finally {
+      setLoanBook(null);  // Limpa o estado do livro
+      setLoanUserId(null);  // Limpa o estado do usuário
+      handleCloseLoanModal();  // Fecha o modal
+    }
+  };
+
+
   const totalPages = Math.ceil(books.length / booksPerPage);
 
   const Pagination = ({ totalPages, paginate }) => {
@@ -274,8 +351,8 @@ const fetchBooks = async () => {
             <button className="btn btn-info me-2" onClick={() => handleViewDetails(book.isbn)}>
               Visualizar Detalhes
             </button>
-            <button className="btn btn-success me-2">Reservar</button>
-            <button className="btn btn-warning">Solicitar Empréstimo</button>
+            <button className="btn btn-success me-2" onClick={() => handleOpenReservationModal(book)}>Solicitar Reserva</button>
+            <button className="btn btn-warning" onClick={() => handleOpenLoanModal(book)}>Solicitar Empréstimo</button>
           </>
         )}
 
@@ -596,6 +673,56 @@ const fetchBooks = async () => {
           </div>
         </div>
       )}
+
+    {showReservationModal && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirmação de Reserva</h5>
+                <button type="button" className="btn-close" onClick={handleCloseReservationModal}></button>
+              </div>
+              <div className="modal-body">
+                <p>Tem certeza de que deseja realizar esta reserva?</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseReservationModal}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => handleConfirmReservation(reservationBook, userId)}>
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLoanModal && (
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Confirmação de Empréstimo</h5>
+                <button type="button" className="btn-close" onClick={handleCloseLoanModal}></button>
+              </div>
+              <div className="modal-body">
+                <p>Tem certeza de que deseja solicitar o empréstimo deste livro?</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseLoanModal}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => handleConfirmLoan(loanBook, userId)}>
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
     </div>
   );
