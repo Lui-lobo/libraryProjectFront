@@ -12,6 +12,8 @@ import Profile from './components/profile/profile';
 import UserManagement from './components/search/userSearch';
 import ReservationManagement from './components/reservation/reservationManagement';
 import LoanManagement from './components/loan/loanManagement';
+import LoanRequests from './components/loan/loanRequest';
+import ReservationRequest from './components/reservation/reservationRequest';
 
 const AppRoutes = () => {
   return (
@@ -24,7 +26,9 @@ const AppRoutes = () => {
       <Route path="/client" element={<ClientDashboard />}>
         <Route path="/client/" element={<SearchHome />} />
         <Route path="/client/profile" element={<Profile />} />
+        <Route path="/client/reservationsRequests" element={<ReservationRequest />}></Route>
         <Route path="/client/reservations" element={<ReservationManagement />}></Route>
+        <Route path="/client/loansRequest" element={<LoanRequests />}></Route>
         <Route path="/client/loans" element={<LoanManagement />}></Route>
       </Route>
 

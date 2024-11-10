@@ -33,7 +33,8 @@ const LoanManagement = () => {
   const fetchLoans = async () => {
     try {
       const allLoans = await fetchAllLoans();
-      setLoans(allLoans);
+      console.log("Empréstimos recebidos da API:", allLoans); // Verifique o valor aqui
+      setLoans(allLoans || []);
     } catch (error) {
       console.error("Erro ao buscar empréstimos:", error);
     }
@@ -181,7 +182,7 @@ const LoanManagement = () => {
 
   return (
     <div className="container mt-4">
-      <h2 className="mb-4">Gerenciamento de Solicitações de Empréstimo</h2>
+      <h2 className="mb-4">Gerenciamento de Empréstimo</h2>
       <form onSubmit={handleSearch} className="mb-4">
         <div className="input-group">
           <input

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
    fetchAllBooksOnCollection, fetchBooksByQuery, fetchBookDetailsByIsbn,
-   updateBookDetails, addBook, inactivateBook, activateBook, updateBookQuantity 
+   updateBookDetails, addBook, inactivateBook, activateBook, updateBookQuantity,
+   reserveBookForCliente, loanBookForCliente 
 } from '../../api/booksApis'; // Importando API para buscar detalhes
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -274,6 +275,7 @@ const handleConfirmReservation = async (book, userId) => {
       throw new Error("Faltando informações para realizar a solicitação.");
     }
     console.log("Livro:", book, "Usuário:", userId);
+    await reserveBookForCliente(book.id, userId);
     // Lógica para lidar com sucesso da reserva (exibir mensagem ou atualizar estado)
     alert('Solicitação de Reserva realizada com sucesso!');
   } catch (error) {
@@ -283,6 +285,7 @@ const handleConfirmReservation = async (book, userId) => {
     // Fechar o modal após tentativa de reserva
     setReservationBook(null);  // Limpa o estado do livro
     setReservationUserId(null);  // Limpa o estado do usuário
+    fetchBooks();
     handleCloseReservationModal();
   }
 };
@@ -308,6 +311,7 @@ const handleConfirmReservation = async (book, userId) => {
         throw new Error("Faltando informações para realizar a solicitação.");
       }
       console.log("Livro:", book, "Usuário:", userId);
+      await loanBookForCliente(book.id, userId);
       // Aqui você faria a chamada da API para registrar a solicitação de empréstimo
       alert('Solicitação de Empréstimo realizada com sucesso!');
     } catch (error) {
@@ -315,6 +319,7 @@ const handleConfirmReservation = async (book, userId) => {
     } finally {
       setLoanBook(null);  // Limpa o estado do livro
       setLoanUserId(null);  // Limpa o estado do usuário
+      fetchBooks();
       handleCloseLoanModal();  // Fecha o modal
     }
   };
@@ -351,8 +356,20 @@ const handleConfirmReservation = async (book, userId) => {
             <button className="btn btn-info me-2" onClick={() => handleViewDetails(book.isbn)}>
               Visualizar Detalhes
             </button>
-            <button className="btn btn-success me-2" onClick={() => handleOpenReservationModal(book)}>Solicitar Reserva</button>
-            <button className="btn btn-warning" onClick={() => handleOpenLoanModal(book)}>Solicitar Empréstimo</button>
+            <button
+              className={`btn ${book.availableCopies <= 0 ? 'btn-secondary' : 'btn-success'} me-2`}
+              onClick={() => handleOpenReservationModal(book)}
+              disabled={book.availableCopies <= 0}
+            >
+              Solicitar Reserva
+            </button>
+            <button
+              className={`btn ${book.availableCopies <= 0 ? 'btn-secondary' : 'btn-warning'}`}
+              onClick={() => handleOpenLoanModal(book)}
+              disabled={book.availableCopies <= 0}
+            >
+              Solicitar Empréstimo
+            </button>
           </>
         )}
 

@@ -61,7 +61,15 @@ const ClientSidebar = () => {
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/client/reservationsRequests">Solicitações de reserva</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
               <Link to="/client/reservations">Livros Reservados</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/client/loansRequest">Solicitações de emprestimo</Link>
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-history fa-fw me-3"></i>

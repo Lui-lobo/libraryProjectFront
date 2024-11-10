@@ -109,3 +109,23 @@ export const updateBookQuantity = async (collectionId, updateData) => {
     throw error;
   }
 }
+
+export const reserveBookForCliente = async (bookId, userId) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/api/reservationRequests?customerId=${userId}&bookId=${bookId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao reservar o livro:", error);
+    throw error;
+  }
+}
+
+export const loanBookForCliente = async (bookId, userId) => {
+  try {
+    const response = await axios.post(`${BASE_URL}/api/loanRequests/create?idCliente=${userId}&idLivro=${bookId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao reservar o livro:", error);
+    throw error;
+  }
+}
