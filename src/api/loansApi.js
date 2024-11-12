@@ -26,7 +26,6 @@ export const fetchAllLoansRequest = async (userId, userRole) => {
    
   const response = await axios.get(url);
 
-  console.log(response);
   if (!response) {
     throw new Error('Erro ao buscar emprestimos');
   }
@@ -38,8 +37,18 @@ export const fetchLoanByQuery = async () => {
 
 }
 
-export const fetchLoanDetailsById = async () => {
-    
+export const fetchLoanDetailsById = async (loanId) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/loanRequests/${loanId}`)
+
+      if (!response) {
+        throw new Error('Erro ao buscar emprestimos');
+      }
+
+      return response.data;
+    } catch (err) {
+      throw new Error('Erro ao buscar emprestimo pelo seu id');
+    }
 }
 
 

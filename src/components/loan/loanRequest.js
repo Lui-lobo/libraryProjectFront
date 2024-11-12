@@ -3,6 +3,12 @@ import {
   fetchAllLoansRequest, fetchLoanByQuery, fetchLoanDetailsById,
   updateLoan, addLoan, cancelLoan, reactivateLoan
 } from '../../api/loansApi';
+import {
+  fetchUserDetailsById
+} from '../../api/usersApi';
+import {
+  getBookById
+} from '../../api/booksApis';
 import { Link, useNavigate } from 'react-router-dom';
 
 const LoanRequests = () => {
@@ -21,6 +27,11 @@ const LoanRequests = () => {
   const [addError, setAddError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [loansPerPage] = useState(5);
+  const [showModal, setShowModal] = useState(false); // Controla se o modal está aberto
+  const [selectedLoan, setSelectedLoan] = useState(null); // Dados do empréstimo selecionado
+  const [clientDetails, setClientDetails] = useState(null); // Armazena os detalhes do cliente
+  const [employeeDetails, setEmployeeDetails] = useState(null); // Armazena os detalhes do funcionário
+  const [bookDetails, setBookDetails] = useState(null); // Armazena os detalhes do livro
   // Infos do usuário
   const [role, setRole] = useState('');
   const [userId, setUserId] = useState('');
@@ -88,11 +99,24 @@ const LoanRequests = () => {
     }
   };
 
-  const handleViewDetails = async (loanId) => {
+  const handleCloseModal = () => {
+    setShowModal(false); // Fecha o modal
+    setSelectedLoan(null); // Limpa os dados do empréstimo
+  };
+
+  const handleViewDetails = async (loan) => {
     try {
-      const details = await fetchLoanDetailsById(loanId);
-      setLoanDetails(details);
-      setShowDetailsModal(true);
+      const details = await fetchLoanDetailsById(loan.id);
+      setSelectedLoan(details);
+
+      const clientData = await fetchUserDetailsById(loan.idCliente);
+      const employeeData = loan.idFuncionario ? await fetchUserDetailsById(loan.idFuncionario) : null;
+      const bookData = await getBookById(loan.idBook);
+
+      setClientDetails(clientData); // Armazena os detalhes do cliente
+      setEmployeeDetails(employeeData); // Armazena os detalhes do funcionário (caso tenha)
+      setBookDetails(bookData); // Armazena os detalhes do livro
+      setShowModal(true);
     } catch (error) {
       console.error("Erro ao buscar detalhes do empréstimo:", error);
     }
@@ -170,9 +194,37 @@ const LoanRequests = () => {
     }
   };
 
-  const handleCloseModal = () => {
-    setShowDetailsModal(false);
-    setLoanDetails(null);
+  const renderActionButtons = (loan) => {
+    return (
+      <div>
+        {/* Para Cliente */}
+        {role === 'Cliente' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>
+              Visualizar Detalhes
+            </button>
+          </>
+        )}
+
+        {/* Para Funcionário */}
+        {role === 'Funcionario' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>
+              Visualizar Detalhes
+            </button>
+          </>
+        )}
+
+        {/* Para Administrador */}
+        {role === 'Administrador' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>
+              Visualizar Detalhes
+            </button>
+          </>
+        )}
+      </div>
+    );
   };
 
   const totalPages = Math.ceil(loans.length / loansPerPage);
@@ -233,8 +285,8 @@ const LoanRequests = () => {
               <th>ID</th>
               <th>Cliente</th>
               <th>Livro</th>
-              <th>Data do Empréstimo</th>
-              <th>Data de Devolução</th>
+              <th>Data da Solicitação de Empréstimo</th>
+              <th>Funcionário</th>
               <th>Status</th>
               <th>Ações</th>
             </tr>
@@ -243,20 +295,12 @@ const LoanRequests = () => {
             {currentLoans.map((loan) => (
               <tr key={loan.id}>
                 <td>{loan.id}</td>
-                <td>{loan.clientName}</td>
-                <td>{loan.bookTitle}</td>
-                <td>{loan.loanDate}</td>
-                <td>{loan.dueDate}</td>
-                <td>{loan.active ? 'Ativo' : 'Cancelado'}</td>
-                <td>
-                  <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan.id)}>Detalhes</button>
-                  <button className="btn btn-primary me-2" onClick={() => handleEditLoan(loan)}>Editar</button>
-                  {loan.active ? (
-                    <button className="btn btn-danger" onClick={() => handleCancelLoan(loan.id)}>Cancelar</button>
-                  ) : (
-                    <button className="btn btn-success" onClick={() => handleReactivateLoan(loan.id)}>Reativar</button>
-                  )}
-                </td>
+                <td>{loan.idCliente}</td>
+                <td>{loan.idBook}</td>
+                <td>{loan.dataSolicitacao}</td>
+                <td>{loan.idFuncionario ? loan.idFuncionario : 'N/A'}</td>
+                <td>{loan.status}</td>
+                <td>{renderActionButtons(loan)}</td>
               </tr>
             ))}
           </tbody>
@@ -267,6 +311,31 @@ const LoanRequests = () => {
 
       {/* Modais para Detalhes, Edição e Adição */}
       {/* Modais reutilizáveis são análogos ao componente `ReservationManagement` */}
+       {/* Modal de detalhes */}
+       {showModal && selectedLoan && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Detalhes do Empréstimo</h5>
+                <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+              </div>
+              <div className="modal-body">
+                <p><strong>ID do Empréstimo:</strong> {selectedLoan.id}</p>
+                <p><strong>Cliente:</strong> {clientDetails.name ? clientDetails.name : 'N/A'}</p>
+                <p><strong>Livro:</strong> {bookDetails.title ? bookDetails.title : 'N/A'}</p>
+                <p><strong>Data de Empréstimo:</strong> {selectedLoan.dataSolicitacao}</p>
+                <p><strong>Funcionario:</strong> {employeeDetails ? employeeDetails.name : 'N/A'}</p>
+                <p><strong>Status:</strong> {selectedLoan.status}</p>
+                {/* Adicione mais campos conforme necessário */}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Fechar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

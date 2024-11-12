@@ -129,3 +129,13 @@ export const loanBookForCliente = async (bookId, userId) => {
     throw error;
   }
 }
+
+export const getBookById = async (bookId) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/api/books/${bookId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao reservar o livro:", error);
+    throw error;
+  }
+}
