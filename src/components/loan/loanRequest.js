@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   fetchAllLoansRequest, fetchLoanByQuery, fetchLoanDetailsById,
-  updateLoan, addLoan, cancelLoan, reactivateLoan
+  updateLoan, addLoan, cancelLoan, reactivateLoan,
+  getLoansByClientIdAndStatus
 } from '../../api/loansApi';
 import {
   fetchUserDetailsById
@@ -14,7 +15,9 @@ import { Link, useNavigate } from 'react-router-dom';
 const LoanRequests = () => {
   const [loans, setLoans] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('clientName');
+  const [searchType, setSearchType] = useState('loanId');
+  const [statusFilter, setStatusFilter] = useState('todos'); // Para o cliente, por padrão 'Todos'
+  const [bookStatus, setBookStatus] = useState('todos'); // Status do livro
   const [noResults, setNoResults] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -55,7 +58,6 @@ const LoanRequests = () => {
   const fetchLoans = async () => {
     try {
       const allLoans = await fetchAllLoansRequest(userId, role);
-      console.log('Reservas encontradas', allLoans)
       setLoans(allLoans);
     } catch (error) {
       console.error("Erro ao buscar empréstimos:", error);
@@ -74,28 +76,34 @@ const LoanRequests = () => {
     }
   }, [userId, role]);
 
-  const handleSearch = async (event) => {
-    event.preventDefault();
-    setErrorMessage('');
+  // Função de busca de empréstimos na API com base no role e nos parâmetros de busca
+  const handleSearch = async (e, bookStatus, userId) => {
+    e.preventDefault();
 
     try {
-      let searchedLoans;
-      if (searchType === 'clientName') {
-        searchedLoans = await fetchLoanByQuery(searchQuery, 'clientName');
+      let response;
+
+      if (role === 'Cliente') {
+        // Cliente busca por status
+        if(bookStatus === 'todos') {
+          response = await fetchAllLoansRequest(userId, role);
+        } else {
+          response = await getLoansByClientIdAndStatus(userId, bookStatus);
+        }
       } else {
-        searchedLoans = await fetchLoanByQuery(searchQuery, 'bookTitle');
+        // Funcionário/Admin busca por ID de solicitação, cliente ou livro
+        const queryParam = searchType === 'loanId' ? `loanId=${searchQuery}`
+                      : searchType === 'clientId' ? `clientId=${searchQuery}`
+                      : `bookId=${searchQuery}`;
+        // Essa vai ser outra api para buscar os usuários pelo id ou buscar livros pelo id ou buscar emprestimos pelo id
+        response = await getLoansByClientIdAndStatus(userId, bookStatus);
       }
 
-      setLoans(searchedLoans);
-      setCurrentPage(1);
-
-      if (searchedLoans.length === 0) {
-        setNoResults(true);
-      } else {
-        setNoResults(false);
-      }
+      setLoans(response);
+      setErrorMessage(response.length === 0 ? 'Nenhum empréstimo encontrado com este status.' : '');
     } catch (error) {
-      setErrorMessage(error.message || 'Erro ao buscar empréstimos');
+      console.error('Erro ao buscar empréstimos:', error);
+      setErrorMessage('Erro ao buscar empréstimos.');
     }
   };
 
@@ -176,14 +184,48 @@ const LoanRequests = () => {
     }
   };
 
-  const handleCancelLoan = async (loanId) => {
-    try {
-      await cancelLoan(loanId);
-      await fetchLoans();
-    } catch (error) {
-      console.error("Erro ao cancelar empréstimo:", error);
+  // Função para cancelar a solicitação
+  const handleCancelRequest = async (loan) => {
+    if (window.confirm("Tem certeza de que deseja cancelar esta solicitação de empréstimo?")) {
+      try {
+        await cancelLoan(loan.id);
+        alert('Solicitação cancelada com sucesso.');
+        // Atualize o estado das solicitações ou recarregue a lista, conforme necessário
+        await fetchLoans();
+      } catch (error) {
+        console.error("Erro ao cancelar solicitação:", error);
+        alert('Erro ao cancelar a solicitação. Tente novamente mais tarde.');
+      }
     }
   };
+
+  // Função para aprovar a solicitação (Funcionário/Admin)
+const handleApproveRequest = async (loan) => {
+  if (window.confirm("Tem certeza de que deseja aprovar esta solicitação de empréstimo?")) {
+    try {
+      //const response = await axios.post(`/api/approve-loan`, { loanId: loan.id });
+      alert('Solicitação aprovada com sucesso.');
+      // Atualize o estado das solicitações ou recarregue a lista, conforme necessário
+    } catch (error) {
+      console.error("Erro ao aprovar solicitação:", error);
+      alert('Erro ao aprovar a solicitação. Tente novamente mais tarde.');
+    }
+  }
+};
+
+// Função para reprovar a solicitação (Funcionário/Admin)
+const handleRejectRequest = async (loan) => {
+  if (window.confirm("Tem certeza de que deseja reprovar esta solicitação de empréstimo?")) {
+    try {
+      //const response = await axios.post(`/api/reject-loan`, { loanId: loan.id });
+      alert('Solicitação reprovada com sucesso.');
+      // Atualize o estado das solicitações ou recarregue a lista, conforme necessário
+    } catch (error) {
+      console.error("Erro ao reprovar solicitação:", error);
+      alert('Erro ao reprovar a solicitação. Tente novamente mais tarde.');
+    }
+  }
+};
 
   const handleReactivateLoan = async (loanId) => {
     try {
@@ -203,6 +245,13 @@ const LoanRequests = () => {
             <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>
               Visualizar Detalhes
             </button>
+            <button
+            className="btn btn-danger me-2"
+            onClick={() => handleCancelRequest(loan)}
+            disabled={loan.status !== 'pendente'} // Botão habilitado apenas se o status for "pending"
+          >
+            Cancelar Solicitação
+          </button>
           </>
         )}
 
@@ -212,6 +261,27 @@ const LoanRequests = () => {
             <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>
               Visualizar Detalhes
             </button>
+            <button
+            className="btn btn-danger me-2"
+            onClick={() => handleCancelRequest(loan)}
+            disabled={loan.status !== 'pendente'} // Botão habilitado apenas se o status for "pending"
+          >
+            Cancelar Solicitação
+          </button>
+          <button
+            className="btn btn-success me-2"
+            onClick={() => handleApproveRequest(loan)}
+            disabled={loan.status !== 'pending'} // Aprovar habilitado apenas se o status for "pending"
+          >
+            Aprovar Solicitação
+          </button>
+          <button
+            className="btn btn-danger me-2"
+            onClick={() => handleRejectRequest(loan)}
+            disabled={loan.status !== 'pending'} // Reprovar habilitado apenas se o status for "pending"
+          >
+            Reprovar Solicitação
+          </button>
           </>
         )}
 
@@ -221,6 +291,27 @@ const LoanRequests = () => {
             <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>
               Visualizar Detalhes
             </button>
+            <button
+            className="btn btn-danger me-2"
+            onClick={() => handleCancelRequest(loan)}
+            disabled={loan.status !== 'pendente'} // Botão habilitado apenas se o status for "pending"
+          >
+            Cancelar Solicitação
+          </button>
+          <button
+            className="btn btn-success me-2"
+            onClick={() => handleApproveRequest(loan)}
+            disabled={loan.status !== 'pending'} // Aprovar habilitado apenas se o status for "pending"
+          >
+            Aprovar Solicitação
+          </button>
+          <button
+            className="btn btn-danger me-2 mt-2"
+            onClick={() => handleRejectRequest(loan)}
+            disabled={loan.status !== 'pending'} // Reprovar habilitado apenas se o status for "pending"
+          >
+            Reprovar Solicitação
+          </button>
           </>
         )}
       </div>
@@ -253,30 +344,48 @@ const LoanRequests = () => {
   return (
     <div className="container mt-4">
       <h2 className="mb-4">Gerenciamento de solicitações de Empréstimos</h2>
-      <form onSubmit={handleSearch} className="mb-4">
-        <div className="input-group">
-          <input
-            type="text"
-            className="form-control me-2"
-            style={{ flex: '1 0 70%' }}
-            placeholder="Digite o nome do cliente ou título do livro"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <form onSubmit={(e) => handleSearch(e, statusFilter, userId)} className="mb-4">
+      <div className="input-group">
+        {role === 'Cliente' ? (
+          // Dropdown para Cliente selecionar o status
           <select
             className="form-select me-2"
-            style={{ flex: '0 0 20%' }}
-            value={searchType}
-            onChange={(e) => setSearchType(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="clientName">Nome do Cliente</option>
-            <option value="bookTitle">Título do Livro</option>
+            <option value="todos">Todos</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="reprovado">Reprovado</option>
+            <option value="pendente">Pendente</option>
+            <option value="cancelado">Cancelado</option>
           </select>
-          <button type="submit" className="btn btn-primary">Buscar</button>
-        </div>
-        {errorMessage && <div className="alert alert-danger mt-3">{errorMessage}</div>}
-        {noResults && <div className="alert alert-warning mt-3">Nenhum empréstimo encontrado.</div>}
-      </form>
+        ) : (
+          // Input e dropdown de tipo de busca para Funcionário/Admin
+          <>
+            <input
+              type="text"
+              className="form-control me-2"
+              placeholder="Digite o ID de solicitação, cliente ou livro"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="form-select me-2"
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value)}
+            >
+              <option value="loanId">ID de Solicitação</option>
+              <option value="clientId">ID do Cliente</option>
+              <option value="bookId">ID do Livro</option>
+            </select>
+          </>
+        )}
+        <button type="submit" className="btn btn-primary">Buscar</button>
+      </div>
+    </form>
+
+    {/* Mensagem de erro ou tabela de resultados */}
+    {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
 
       <div className="table-responsive">
         <table className="table table-bordered">

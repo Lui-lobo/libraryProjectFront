@@ -36,7 +36,9 @@ const AppRoutes = () => {
         <Route path="/employee/" element={<SearchHome />} />
         <Route path="/employee/users" element={<UserManagement />} />
         <Route path="/employee/profile" element={<Profile />} />
+        <Route path="/employee/reservationsRequests" element={<ReservationRequest />}></Route>
         <Route path="/employee/reservations" element={<ReservationManagement />}></Route>
+        <Route path="/employee/loansRequest" element={<LoanRequests />}></Route>
         <Route path="/employee/loans" element={<LoanManagement />}></Route>
       </Route>
  
@@ -44,7 +46,9 @@ const AppRoutes = () => {
         <Route path="/admin/" element={<SearchHome />} />
         <Route path="/admin/users" element={<UserManagement />} />
         <Route path="/admin/profile" element={<Profile />} />
+        <Route path="/admin/reservationsRequests" element={<ReservationRequest />}></Route>
         <Route path="/admin/reservations" element={<ReservationManagement />}></Route>
+        <Route path="/admin/loansRequest" element={<LoanRequests />}></Route>
         <Route path="/admin/loans" element={<LoanManagement />}></Route>
       </Route>
 

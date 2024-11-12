@@ -21,7 +21,7 @@ export const fetchAllLoansRequest = async (userId, userRole) => {
     if(userId && userRole === 'Cliente') {
         url = getLoanRequestsRoutesByRole(`${userId}`);
     } else {
-        url = getLoanRequestsRoutesByRole('');
+        url = getLoanRequestsRoutesByRole('all');
     }
    
   const response = await axios.get(url);
@@ -51,6 +51,20 @@ export const fetchLoanDetailsById = async (loanId) => {
     }
 }
 
+export const getLoansByClientIdAndStatus = async (clientId, status) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/api/loanRequests/client/${clientId}/status/${status}`)
+
+    if (!response) {
+      throw new Error('Erro ao buscar emprestimos');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao buscar emprestimo pelo seu id');
+  }
+}
+
 
 export const updateLoan = async () => {
     
@@ -61,8 +75,18 @@ export const addLoan = async () => {
     
 }
 
-export const cancelLoan = async () => {
-    
+export const cancelLoan = async (loanId) => {
+  try {
+    const response = await axios.put(`${BASE_URL}/api/loanRequests/cancel/${loanId}`)
+
+    if (!response) {
+      throw new Error('Erro ao cancelar emprestimo');
+    }
+
+    return response;
+  } catch (err) {
+    throw new Error('Erro ao cancelar emprestimo pelo seu id');
+  }
 }
 
 export const reactivateLoan = async () => {

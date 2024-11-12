@@ -21,7 +21,15 @@ const ClientSidebar = () => {
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/admin/reservationsRequests">Solicitações de reserva</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
               <Link to="/admin/reservations">Gerenciar Reservas</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/admin/loansRequest">Solicitações de emprestimo</Link>
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-history fa-fw me-3"></i>
@@ -43,7 +51,15 @@ const ClientSidebar = () => {
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/employee/reservationsRequests">Solicitações de reserva</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
               <Link to="/employee/reservations">Gerenciar Reservas</Link>
+            </a>
+            <a className="list-group-item list-group-item-action py-2 ripple">
+              <i className="fas fa-bookmark fa-fw me-3"></i>
+              <Link to="/employee/loansRequest">Solicitações de emprestimo</Link>
             </a>
             <a className="list-group-item list-group-item-action py-2 ripple">
               <i className="fas fa-history fa-fw me-3"></i>
