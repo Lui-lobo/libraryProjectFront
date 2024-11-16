@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
   fetchAllLoans, fetchLoanByQuery, fetchLoanDetailsById,
-  updateLoanStatus, addLoanRequest, cancelLoanRequest, returnLoanBook
+  updateLoanStatus, addLoanRequest, cancelLoanRequest, returnLoanBook,
+  fetchloanDetailById, fetchLoanByCustomerIdAndStatus
 } from '../../api/loansApi';
+import {
+  fetchUserDetailsById
+} from '../../api/usersApi';
+import {
+  getBookById
+} from '../../api/booksApis';
 import { Link, useNavigate } from 'react-router-dom';
 
 const LoanManagement = () => {
@@ -19,6 +26,13 @@ const LoanManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newLoanRequest, setNewLoanRequest] = useState({ clientName: '', bookTitle: '', loanDate: '', dueDate: '' });
   const [addError, setAddError] = useState('');
+  // Informações para mostrar os detalhes
+  const [clientDetails, setClientDetails] = useState(null); // Armazena os detalhes do cliente
+  const [employeeDetails, setEmployeeDetails] = useState(null); // Armazena os detalhes do funcionário
+  const [bookDetails, setBookDetails] = useState(null); // Armazena os detalhes do livro
+  // Filtros de busca cliente
+  const [statusFilter, setStatusFilter] = useState('todos'); // Para o cliente, por padrão 'Todos'
+  // Paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [loansPerPage] = useState(5);
 
@@ -26,14 +40,24 @@ const LoanManagement = () => {
   const indexOfFirstLoan = indexOfLastLoan - loansPerPage;
   const currentLoans = loans.slice(indexOfFirstLoan, indexOfLastLoan);
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+   // Infos do usuário
+   const [role, setRole] = useState('');
+   const [userId, setUserId] = useState('');
 
   const navigate = useNavigate();
 
-  // Função para buscar todas as solicitações de empréstimo
+ // Função para buscar todos os empréstimos
+ const fetchUserData = async () => {
+  const userData = JSON.parse(localStorage.getItem('user'));
+  if (userData && userData.role) {
+    setRole(userData.role);
+    setUserId(userData.id);
+  }
+}
+
   const fetchLoans = async () => {
     try {
-      const allLoans = await fetchAllLoans();
-      console.log("Empréstimos recebidos da API:", allLoans); // Verifique o valor aqui
+      const allLoans = await fetchAllLoans(userId, role);
       setLoans(allLoans || []);
     } catch (error) {
       console.error("Erro ao buscar empréstimos:", error);
@@ -41,37 +65,57 @@ const LoanManagement = () => {
   };
 
   useEffect(() => {
-    fetchLoans();
+    // Primeira chamada para buscar dados do usuário e definir `userId` e `role`
+    fetchUserData();
   }, []);
 
-  const handleSearch = async (event) => {
-    event.preventDefault();
-    setErrorMessage('');
+  // Segunda chamada para buscar empréstimos apenas quando `userId` e `role` são definidos
+  useEffect(() => {
+    if (userId && role) {
+      fetchLoans();
+    }
+  }, [userId, role]);
+
+  const handleSearch = async (e, bookStatus, userId) => {
+    e.preventDefault();
 
     try {
-      let searchedLoans;
-      if (searchType === 'clientName') {
-        searchedLoans = await fetchLoanByQuery(searchQuery, 'clientName');
+      let response;
+      if (role === 'Cliente') {
+        // Cliente busca por status
+        if(bookStatus === 'todos') {
+          response = await fetchAllLoans(userId, role);
+        } else {
+          response = await fetchLoanByCustomerIdAndStatus(userId, bookStatus);
+        }
       } else {
-        searchedLoans = await fetchLoanByQuery(searchQuery, 'bookTitle');
+        // Funcionário/Admin busca por ID de solicitação, cliente ou livro
+        const queryValue = e.target.querySelector('input').value; 
+      
+        //response = await getLoansByQuery(searchType, queryValue);
       }
 
-      setLoans(searchedLoans);
-      setCurrentPage(1);
-
-      if (searchedLoans.length === 0) {
-        setNoResults(true);
-      } else {
-        setNoResults(false);
-      }
+      setLoans(response);
+      setErrorMessage(response.length === 0 ? 'Nenhum empréstimo encontrado com este status.' : '');
     } catch (error) {
-      setErrorMessage(error.message || 'Erro ao buscar empréstimos');
+      console.error('Erro ao buscar empréstimos:', error);
+      setErrorMessage('Erro ao buscar empréstimos.');
     }
   };
 
-  const handleViewDetails = async (loanId) => {
+  const handleViewDetails = async (loan) => {
     try {
-      const details = await fetchLoanDetailsById(loanId);
+      console.log(loan);
+      const details = await fetchloanDetailById(loan.id);
+
+      const clientData = await fetchUserDetailsById(loan.idCliente);
+      const employeeData = loan.idFuncionario ? await fetchUserDetailsById(loan.idFuncionario) : null;
+      const bookData = await getBookById(loan.idLivro);
+
+      
+      setClientDetails(clientData); // Armazena os detalhes do cliente
+      setEmployeeDetails(employeeData); // Armazena os detalhes do funcionário (caso tenha)
+      setBookDetails(bookData); // Armazena os detalhes do livro
       setLoanDetails(details);
       setShowDetailsModal(true);
     } catch (error) {
@@ -183,26 +227,45 @@ const LoanManagement = () => {
   return (
     <div className="container mt-4">
       <h2 className="mb-4">Gerenciamento de Empréstimo</h2>
-      <form onSubmit={handleSearch} className="mb-4">
+      <div className="">
+          <button className="btn btn-secondary mb-3" onClick={fetchLoans}>Reiniciar listagem</button>
+      </div>
+      <form onSubmit={(e) => handleSearch(e, statusFilter, userId)} className="mb-4">
         <div className="input-group">
-          <input
-            type="text"
-            className="form-control me-2"
-            style={{ flex: '1 0 70%' }}
-            placeholder="Digite o nome do cliente ou título do livro"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        {role === 'Cliente' ? (
+          // Dropdown para Cliente selecionar o status
           <select
             className="form-select me-2"
-            style={{ flex: '0 0 20%' }}
-            value={searchType}
-            onChange={(e) => setSearchType(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="clientName">Nome do Cliente</option>
-            <option value="bookTitle">Título do Livro</option>
+            <option value="todos">Todos</option>
+            <option value="ativo">Ativo</option>
+            <option value="expirado">expirado</option>
+            <option value="devolvido">Devolvido</option>
           </select>
-          <button type="submit" className="btn btn-primary">Buscar</button>
+        ) : (
+          // Input e dropdown de tipo de busca para Funcionário/Admin
+          <>
+            <input
+              type="text"
+              className="form-control me-2"
+              placeholder="Digite o ID de solicitação, cliente ou livro"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="form-select me-2"
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value)}
+            >
+              <option value="loanId">ID de Solicitação</option>
+              <option value="clientId">ID do Cliente</option>
+              <option value="bookId">ID do Livro</option>
+            </select>
+          </>
+        )}
+        <button type="submit" className="btn btn-primary">Buscar</button>
         </div>
         {errorMessage && <div className="alert alert-danger mt-3">{errorMessage}</div>}
         {noResults && <div className="alert alert-warning mt-3">Nenhuma solicitação encontrada.</div>}
@@ -213,8 +276,8 @@ const LoanManagement = () => {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Cliente</th>
-              <th>Livro</th>
+              <th>Id do Cliente</th>
+              <th>Id do Livro</th>
               <th>Data do Empréstimo</th>
               <th>Data de Devolução</th>
               <th>Status</th>
@@ -225,18 +288,13 @@ const LoanManagement = () => {
             {currentLoans.map((loan) => (
               <tr key={loan.id}>
                 <td>{loan.id}</td>
-                <td>{loan.clientName}</td>
-                <td>{loan.bookTitle}</td>
-                <td>{loan.loanDate}</td>
-                <td>{loan.dueDate}</td>
+                <td>{loan.idCliente}</td>
+                <td>{loan.idLivro}</td>
+                <td>{loan.dataAprovacao}</td>
+                <td>{loan.dataDevolucaoEstimada	}</td>
                 <td>{loan.status}</td>
                 <td>
-                  <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan.id)}>Detalhes</button>
-                  <button className="btn btn-primary me-2" onClick={() => handleEditLoan(loan)}>Editar</button>
-                  {loan.status === 'Aprovado' && (
-                    <button className="btn btn-success" onClick={() => handleReturnLoanBook(loan.id)}>Devolver</button>
-                  )}
-                  <button className="btn btn-danger" onClick={() => handleCancelLoanRequest(loan.id)}>Cancelar</button>
+                  <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>Detalhes</button>
                 </td>
               </tr>
             ))}
@@ -245,8 +303,6 @@ const LoanManagement = () => {
       </div>
 
       {totalPages > 1 && <Pagination totalPages={totalPages} paginate={paginate} />}
-
-      <button className="btn btn-primary mt-4" onClick={handleOpenAddModal}>Nova Solicitação de Empréstimo</button>
 
       {showDetailsModal && loanDetails && (
         <div className="modal fade show d-block" tabIndex="-1">
@@ -258,10 +314,10 @@ const LoanManagement = () => {
               </div>
               <div className="modal-body">
                 <p><strong>ID:</strong> {loanDetails.id}</p>
-                <p><strong>Cliente:</strong> {loanDetails.clientName}</p>
-                <p><strong>Livro:</strong> {loanDetails.bookTitle}</p>
-                <p><strong>Data do Empréstimo:</strong> {loanDetails.loanDate}</p>
-                <p><strong>Data de Devolução:</strong> {loanDetails.dueDate}</p>
+                <p><strong>Cliente:</strong> {clientDetails.name}</p>
+                <p><strong>Livro:</strong> {bookDetails.title}</p>
+                <p><strong>Data do Empréstimo:</strong> {loanDetails.dataAprovacao}</p>
+                <p><strong>Data de Devolução:</strong> {loanDetails.dataDevolucaoEstimada	}</p>
                 <p><strong>Status:</strong> {loanDetails.status}</p>
               </div>
               <div className="modal-footer">

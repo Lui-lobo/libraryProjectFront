@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import {
   fetchAllLoansRequest, fetchLoanByQuery, fetchLoanDetailsById,
   updateLoan, addLoan, cancelLoan, reactivateLoan,
-  getLoansByClientIdAndStatus
+  getLoansByClientIdAndStatus, updateLoanRequestStatus,
+  getLoansByQuery
 } from '../../api/loansApi';
 import {
   fetchUserDetailsById
@@ -92,11 +93,9 @@ const LoanRequests = () => {
         }
       } else {
         // Funcionário/Admin busca por ID de solicitação, cliente ou livro
-        const queryParam = searchType === 'loanId' ? `loanId=${searchQuery}`
-                      : searchType === 'clientId' ? `clientId=${searchQuery}`
-                      : `bookId=${searchQuery}`;
-        // Essa vai ser outra api para buscar os usuários pelo id ou buscar livros pelo id ou buscar emprestimos pelo id
-        response = await getLoansByClientIdAndStatus(userId, bookStatus);
+        const queryValue = e.target.querySelector('input').value; 
+      
+        response = await getLoansByQuery(searchType, queryValue);
       }
 
       setLoans(response);
@@ -203,9 +202,10 @@ const LoanRequests = () => {
 const handleApproveRequest = async (loan) => {
   if (window.confirm("Tem certeza de que deseja aprovar esta solicitação de empréstimo?")) {
     try {
-      //const response = await axios.post(`/api/approve-loan`, { loanId: loan.id });
+      await updateLoanRequestStatus(loan.id, userId, 'aprovado');
       alert('Solicitação aprovada com sucesso.');
       // Atualize o estado das solicitações ou recarregue a lista, conforme necessário
+      await fetchLoans();
     } catch (error) {
       console.error("Erro ao aprovar solicitação:", error);
       alert('Erro ao aprovar a solicitação. Tente novamente mais tarde.');
@@ -217,9 +217,10 @@ const handleApproveRequest = async (loan) => {
 const handleRejectRequest = async (loan) => {
   if (window.confirm("Tem certeza de que deseja reprovar esta solicitação de empréstimo?")) {
     try {
-      //const response = await axios.post(`/api/reject-loan`, { loanId: loan.id });
+      await updateLoanRequestStatus(loan.id, userId, 'reprovado');
       alert('Solicitação reprovada com sucesso.');
       // Atualize o estado das solicitações ou recarregue a lista, conforme necessário
+      await fetchLoans();
     } catch (error) {
       console.error("Erro ao reprovar solicitação:", error);
       alert('Erro ao reprovar a solicitação. Tente novamente mais tarde.');
@@ -271,14 +272,14 @@ const handleRejectRequest = async (loan) => {
           <button
             className="btn btn-success me-2"
             onClick={() => handleApproveRequest(loan)}
-            disabled={loan.status !== 'pending'} // Aprovar habilitado apenas se o status for "pending"
+            disabled={loan.status !== 'pendente'} // Aprovar habilitado apenas se o status for "pending"
           >
             Aprovar Solicitação
           </button>
           <button
             className="btn btn-danger me-2"
             onClick={() => handleRejectRequest(loan)}
-            disabled={loan.status !== 'pending'} // Reprovar habilitado apenas se o status for "pending"
+            disabled={loan.status !== 'pendente'} // Reprovar habilitado apenas se o status for "pending"
           >
             Reprovar Solicitação
           </button>
@@ -301,14 +302,14 @@ const handleRejectRequest = async (loan) => {
           <button
             className="btn btn-success me-2"
             onClick={() => handleApproveRequest(loan)}
-            disabled={loan.status !== 'pending'} // Aprovar habilitado apenas se o status for "pending"
+            disabled={loan.status !== 'pendente'} // Aprovar habilitado apenas se o status for "pending"
           >
             Aprovar Solicitação
           </button>
           <button
             className="btn btn-danger me-2 mt-2"
             onClick={() => handleRejectRequest(loan)}
-            disabled={loan.status !== 'pending'} // Reprovar habilitado apenas se o status for "pending"
+            disabled={loan.status !== 'pendente'} // Reprovar habilitado apenas se o status for "pending"
           >
             Reprovar Solicitação
           </button>
@@ -344,6 +345,9 @@ const handleRejectRequest = async (loan) => {
   return (
     <div className="container mt-4">
       <h2 className="mb-4">Gerenciamento de solicitações de Empréstimos</h2>
+      <div className="">
+          <button onClick={fetchLoans} className="btn btn-secondary mb-3">Reiniciar listagem</button>
+      </div>
       <form onSubmit={(e) => handleSearch(e, statusFilter, userId)} className="mb-4">
       <div className="input-group">
         {role === 'Cliente' ? (
