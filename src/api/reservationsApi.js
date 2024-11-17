@@ -8,3 +8,32 @@ const getRouteForRole = (endpoint) => {
   }
   return `${BASE_URL}/api/bookCollection${endpoint}`;
 };
+
+
+export const fetchAllReservations = async () => {
+
+}
+
+export const fetchReservationByQuery = async () => {
+  
+}
+
+export const fetchReservationDetailsById = async () => {
+  
+}
+
+export const updateReservation = async () => {
+  
+}
+
+export const addReservation = async () => {
+  
+}
+
+export const cancelReservation = async () => {
+  
+}
+
+export const reactivateReservation = async () => {
+  
+}

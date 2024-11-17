@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   fetchAllLoans, fetchLoanByQuery, fetchLoanDetailsById,
   updateLoanStatus, addLoanRequest, cancelLoanRequest, returnLoanBook,
-  fetchloanDetailById, fetchLoanByCustomerIdAndStatus
+  fetchloanDetailById, fetchLoanByCustomerIdAndStatus, getLoansByQueryInManagement
 } from '../../api/loansApi';
 import {
   fetchUserDetailsById
@@ -15,7 +15,7 @@ import { Link, useNavigate } from 'react-router-dom';
 const LoanManagement = () => {
   const [loans, setLoans] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('clientName');
+  const [searchType, setSearchType] = useState('loanId');
   const [noResults, setNoResults] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -92,7 +92,7 @@ const LoanManagement = () => {
         // Funcionário/Admin busca por ID de solicitação, cliente ou livro
         const queryValue = e.target.querySelector('input').value; 
       
-        //response = await getLoansByQuery(searchType, queryValue);
+        response = await getLoansByQueryInManagement(searchType, queryValue);
       }
 
       setLoans(response);
@@ -187,18 +187,63 @@ const LoanManagement = () => {
     }
   };
 
-  const handleReturnLoanBook = async (loanId) => {
-    try {
-      await returnLoanBook(loanId);
-      await fetchLoans();
-    } catch (error) {
-      console.error("Erro ao devolver livro:", error);
+  const handleReturnLoanBook = async (loan) => {
+    if (window.confirm("Tem certeza de que deseja retornar este empréstimo?")) {
+      try {
+        await returnLoanBook(loan.id);
+        alert('Emprestimo devolvido com sucesso.');
+        await fetchLoans();
+      } catch (error) {
+        console.error("Erro ao devolver livro:", error);
+        alert('Houve um error ao realizar a devolução do emprestimo.');
+      }
     }
   };
 
   const handleCloseModal = () => {
     setShowDetailsModal(false);
     setLoanDetails(null);
+  };
+
+  const renderActionButtons = (loan) => {
+    return (
+      <div>
+        {/* Para Cliente */}
+        {role === 'Cliente' && (
+          <>
+              <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>Detalhes</button>
+          </>
+        )}
+
+        {/* Para Funcionário */}
+        {role === 'Funcionario' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>Detalhes</button>
+            <button
+            className="btn btn-success me-2"
+            onClick={() => handleReturnLoanBook(loan)}
+            disabled={loan.status !== 'ativo' && loan.status !== 'expirado'} // Aprovar habilitado apenas se o status for "pending"
+          >
+            Devolver emprestimo
+          </button>
+          </>
+        )}
+
+        {/* Para Administrador */}
+        {role === 'Administrador' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>Detalhes</button>
+            <button
+            className="btn btn-success me-2"
+            onClick={() => handleReturnLoanBook(loan)}
+            disabled={loan.status !== 'ativo' && loan.status !== 'expirado'}
+          >
+            Devolver emprestimo
+          </button>
+          </>
+        )}
+      </div>
+    );
   };
 
   const totalPages = Math.ceil(loans.length / loansPerPage);
@@ -293,9 +338,7 @@ const LoanManagement = () => {
                 <td>{loan.dataAprovacao}</td>
                 <td>{loan.dataDevolucaoEstimada	}</td>
                 <td>{loan.status}</td>
-                <td>
-                  <button className="btn btn-info me-2" onClick={() => handleViewDetails(loan)}>Detalhes</button>
-                </td>
+                <td>{renderActionButtons(loan)}</td>
               </tr>
             ))}
           </tbody>

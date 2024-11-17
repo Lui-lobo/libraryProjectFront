@@ -130,8 +130,18 @@ export const cancelLoanRequest = async () => {
 }
 
 
-export const returnLoanBook = async () => {
-    
+export const returnLoanBook = async (loanId) => {
+  try {
+    const response = await axios.put(`${BASE_URL}/api/loans/return/${loanId}`);
+
+    if (!response) {
+      throw new Error('Erro ao retornar emprestimo');
+    }
+
+    return response;
+  } catch (err) {
+    throw new Error('Erro ao retornar emprestimo pelo seu id');
+  }
 }
 
 export const updateLoanRequestStatus = async (loanId, idFuncionario, status) => {
@@ -191,4 +201,26 @@ export const fetchLoanByCustomerIdAndStatus = async (userId, status) => {
   }
 }
 
+export const getLoansByQueryInManagement = async (searchStatus, searchValue) => {
+  try {
+    let response;
 
+    console.log(searchStatus)
+    if (searchStatus === 'clientId') {
+      response = await axios.get(`${BASE_URL}/api/loans/client/${searchValue}`);
+    } else if (searchStatus === 'loanId') {
+      response = await axios.get(`${BASE_URL}/api/loans/listId/${searchValue}`);
+    } else {
+      // Falta api de buscar pelo id de livro
+      response = await axios.get(`${BASE_URL}/api/loans/book/${searchValue}`);
+    }
+
+    if (!response) {
+      throw new Error('Erro ao buscar solicitação de emprestimo');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao buscar solicitação de emprestimo pela query');
+  }
+};

@@ -31,9 +31,8 @@ const ReservationRequest = () => {
 
   const fetchReservations = async () => {
     try {
-      console.log('Tentando buscar reservas')
       const allReservations = await fetchAllReservations();
-      setReservations(allReservations);
+      //setReservations(allReservations);
     } catch (error) {
       console.log("Erro ao buscar reservas:", error);
     }
