@@ -10,6 +10,14 @@ const getRouteForRole = (endpoint) => {
   return `${BASE_URL}/api/reservations/${endpoint}`;
 };
 
+const getRouteForRoleReservations = (endpoint) => {
+  const userData = JSON.parse(localStorage.getItem('user'));
+  if (userData && userData.role === 'Cliente') {
+    return `${BASE_URL}/api/reservations/customer/${endpoint}`;
+  }
+  return `${BASE_URL}/api/reservations/${endpoint}`;
+};
+
 
 export const fetchAllReservations = async (userId, userRole) => {
   let url;
@@ -41,6 +49,30 @@ export const fetchReservationByQuery = async (searchStatus, searchValue) => {
     } else {
       // Falta api de buscar pelo id de livro
       response = await axios.get(`${BASE_URL}/api/reservationRequests/book/${searchValue}`);
+    }
+
+    if (!response) {
+      throw new Error('Erro ao buscar solicitação de reserva');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao buscar solicitação de reserva pela query');
+  }
+}
+
+export const fetchReservationByQueryForReservations = async (searchStatus, searchValue) => {
+  try {
+    let response;
+
+    console.log(searchStatus)
+    if (searchStatus === 'clientId') {
+      response = await axios.get(`${BASE_URL}/api/reservations/customerInList/${searchValue}`);
+    } else if (searchStatus === 'reservationId') {
+      response = await axios.get(`${BASE_URL}/api/reservations/getReservationByIdInList/${searchValue}`);
+    } else {
+      // Falta api de buscar pelo id de livro
+      response = await axios.get(`${BASE_URL}/api/reservations/book/${searchValue}`);
     }
 
     if (!response) {
@@ -103,6 +135,20 @@ export const cancelReservation = async (reservationId) => {
   }
 }
 
+export const cancelReseravtionForReservation = async (reservationId) => {
+  try {
+    const response = await axios.put(`${BASE_URL}/api/reservations/cancelReservation/${reservationId}`)
+
+    if (!response) {
+      throw new Error('Erro ao cancelar solicitação de reserva');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao cancelar solicitação de reserva pelo seu id');
+  }
+}
+
 export const reactivateReservation = async () => {
   
 }
@@ -120,3 +166,63 @@ export const updateReservationRequestStatus = async (reservationId, employeeId, 
     throw new Error('Erro ao atualizar solicitação de emprestimo pelo seu id');
   }
 };
+
+export const fetchAllReservationsForReservations = async (userId, userRole) => {
+    let url;
+
+    if(userId && userRole === 'Cliente') {
+        url = getRouteForRoleReservations(`${userId}`);
+    } else {
+        url = getRouteForRoleReservations('getAllReservations');
+    }
+  
+    const response = await axios.get(url);
+
+    if (!response) {
+      throw new Error('Erro ao buscar reservas');
+    }
+
+    return response.data;
+}
+
+export const fetchReservationDetailsByIdForReservations = async (reservationId) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/api/reservations/getReservation/${reservationId}`)
+
+    if (!response) {
+      throw new Error('Erro ao buscar reserva');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao buscar reserva pelo seu id');
+  }
+}
+
+export const fetchReservationByCustomerIdAndStatusForReservations = async (customerId, status) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/api/reservations/customer/${customerId}/status/${status}`);
+
+    if (!response) {
+      throw new Error('Erro ao buscar reservas');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao buscar reservas');
+  }
+}
+
+export const convertReservationInLoan = async (reservationId, employeeId) => {
+  try {
+    const response = await axios.put(`${BASE_URL}/api/reservations/transformInReservation/${reservationId}?employeeId=${employeeId}`);
+
+    if (!response) {
+      throw new Error('Erro ao buscar reservas');
+    }
+
+    return response.data;
+  } catch (err) {
+    throw new Error('Erro ao buscar reservas');
+  }
+}

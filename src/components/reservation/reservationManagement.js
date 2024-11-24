@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
-  fetchAllReservations, fetchReservationByQuery, fetchReservationDetailsById,
-  updateReservation, addReservation, cancelReservation, reactivateReservation
+  fetchAllReservationsForReservations, fetchReservationByQueryForReservations, fetchReservationDetailsByIdForReservations,
+  updateReservation, addReservation, cancelReseravtionForReservation, reactivateReservation, fetchReservationByCustomerIdAndStatusForReservations,
+  convertReservationInLoan
 } from '../../api/reservationsApi';
 import { Link, useNavigate } from 'react-router-dom';
 
 const ReservationManagement = () => {
   const [reservations, setReservations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('clientName');
+  const [searchType, setSearchType] = useState('reservationId');
   const [noResults, setNoResults] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -22,6 +23,12 @@ const ReservationManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [reservationsPerPage] = useState(5);
 
+   // Infos do usuário
+   const [role, setRole] = useState('');
+   const [userId, setUserId] = useState('');
+    // Filtros de busca cliente
+  const [statusFilter, setStatusFilter] = useState('todos'); // Para o cliente, por padrão 'Todos'
+
   const indexOfLastReservation = currentPage * reservationsPerPage;
   const indexOfFirstReservation = indexOfLastReservation - reservationsPerPage;
   const currentReservations = reservations.slice(indexOfFirstReservation, indexOfLastReservation);
@@ -29,48 +36,67 @@ const ReservationManagement = () => {
 
   const navigate = useNavigate();
 
+  const fetchUserData = async () => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (userData && userData.role) {
+      setRole(userData.role);
+      setUserId(userData.id);
+    }
+  }
+
   // Função para buscar todas as reservas
   const fetchReservations = async () => {
     try {
-      const allReservations = await fetchAllReservations();
+      const allReservations = await fetchAllReservationsForReservations(userId, role);
       setReservations(allReservations);
     } catch (error) {
       console.error("Erro ao buscar reservas:", error);
     }
   };
 
+ 
   useEffect(() => {
-    fetchReservations();
+    // Primeira chamada para buscar dados do usuário e definir `userId` e `role`
+    fetchUserData();
   }, []);
 
-  const handleSearch = async (event) => {
-    event.preventDefault();
-    setErrorMessage('');
-
-    try {
-      let searchedReservations;
-      if (searchType === 'clientName') {
-        searchedReservations = await fetchReservationByQuery(searchQuery, 'clientName');
-      } else {
-        searchedReservations = await fetchReservationByQuery(searchQuery, 'bookTitle');
+    // Segunda chamada para buscar empréstimos apenas quando `userId` e `role` são definidos
+    useEffect(() => {
+      if (userId && role) {
+        fetchReservations();
       }
+    }, [userId, role]);
 
-      setReservations(searchedReservations);
-      setCurrentPage(1);
-
-      if (searchedReservations.length === 0) {
-        setNoResults(true);
-      } else {
-        setNoResults(false);
+    const handleSearch = async (event, statusFilter, userId) => {
+      event.preventDefault();
+      setErrorMessage('');
+  
+      try {
+        let response;
+        if(role === 'Cliente') {
+          if(statusFilter === 'todos') {
+            response = await fetchAllReservationsForReservations(userId, role);
+          } else {
+            response = await fetchReservationByCustomerIdAndStatusForReservations(userId, statusFilter);
+          }
+        } else {
+          // Funcionario/admin buscão por id de solicitações e etc.
+            // Funcionário/Admin busca por ID de solicitação, cliente ou livro
+            const queryValue = event.target.querySelector('input').value; 
+        
+            response = await fetchReservationByQueryForReservations(searchType, queryValue);
+        }
+  
+        setReservations(response);
+        setErrorMessage(response.length === 0 ? 'Nenhuma reserva encontrada com este status.' : '');
+      } catch (e) {
+        setErrorMessage('Error ao buscar reservas');
       }
-    } catch (error) {
-      setErrorMessage(error.message || 'Erro ao buscar reservas');
-    }
-  };
+    };
 
   const handleViewDetails = async (reservationId) => {
     try {
-      const details = await fetchReservationDetailsById(reservationId);
+      const details = await fetchReservationDetailsByIdForReservations(reservationId);
       setReservationDetails(details);
       setShowDetailsModal(true);
     } catch (error) {
@@ -133,20 +159,24 @@ const ReservationManagement = () => {
   };
 
   const handleCancelReservation = async (reservationId) => {
-    try {
-      await cancelReservation(reservationId);
-      await fetchReservations();
-    } catch (error) {
-      console.error("Erro ao cancelar reserva:", error);
+    if (window.confirm("Tem certeza de que deseja cancelar esta reserva?")) {
+      try {
+        await cancelReseravtionForReservation(reservationId);
+        await fetchReservations();
+      } catch (error) {
+        console.error("Erro ao cancelar reserva:", error);
+      }
     }
   };
 
-  const handleReactivateReservation = async (reservationId) => {
-    try {
-      await reactivateReservation(reservationId);
-      await fetchReservations();
-    } catch (error) {
-      console.error("Erro ao reativar reserva:", error);
+  const handleConvertReservation = async (reservationId) => {
+    if (window.confirm("Tem certeza de que deseja transformar esta reserva em um emprestimo ?")) {
+      try {
+        await convertReservationInLoan(reservationId, userId);
+        await fetchReservations();
+      } catch (error) {
+        console.error("Erro ao reativar reserva:", error);
+      }
     }
   };
 
@@ -178,28 +208,107 @@ const ReservationManagement = () => {
     );
   };
 
+  const renderActionButtons = (reservation) => {
+    return (
+      <div>
+        {/* Para Cliente */}
+        {role === 'Cliente' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(reservation.id)}>Detalhes</button>
+            <button
+            className="btn btn-danger me-2"
+            onClick={() => handleCancelReservation(reservation.id)}
+            disabled={reservation.status !== 'reservado'} // Reprovar habilitado apenas se o status for "reservado"
+          >
+            Cancelar reserva
+          </button>
+          </>
+        )}
+
+        {/* Para Funcionário */}
+        {role === 'Funcionario' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(reservation.id)}>Detalhes</button>
+            <button
+            className="btn btn-success me-2"
+            onClick={() => handleConvertReservation(reservation.id)}
+            disabled={reservation.status !== 'reservado'} // Aprovar habilitado apenas se o status for "pending"
+          >
+            Transformar em Emprestimo
+          </button>
+          <button
+            className="btn btn-danger me-2"
+            onClick={() => handleCancelReservation(reservation.id)}
+            disabled={reservation.status !== 'reservado'} // Reprovar habilitado apenas se o status for "pending"
+          >
+            Cancelar reserva
+          </button>
+          </>
+        )}
+
+        {/* Para Administrador */}
+        {role === 'Administrador' && (
+          <>
+            <button className="btn btn-info me-2" onClick={() => handleViewDetails(reservation.id)}>Detalhes</button>
+            <button
+            className="btn btn-success me-2"
+            onClick={() => handleConvertReservation(reservation.id)}
+            disabled={reservation.status !== 'reservado'} // Aprovar habilitado apenas se o status for "reservado"
+          >
+            Transformar em Emprestimo
+          </button>
+          <button
+            className="btn btn-danger me-2"
+            onClick={() => handleCancelReservation(reservation.id)}
+            disabled={reservation.status !== 'reservado'} // Reprovar habilitado apenas se o status for "reservado"
+          >
+            Cancelar reserva
+          </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="container mt-4">
       <h2 className="mb-4">Gerenciamento de Reservas</h2>
-      <form onSubmit={handleSearch} className="mb-4">
+      <div className="">
+          <button className="btn btn-secondary mb-3" onClick={fetchReservations}>Reiniciar listagem</button>
+      </div>
+      <form onSubmit={(e) => handleSearch(e, statusFilter, userId)} className="mb-4">
         <div className="input-group">
-          <input
-            type="text"
-            className="form-control me-2"
-            style={{ flex: '1 0 70%' }}
-            placeholder="Digite o nome do cliente ou título do livro"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        {role === 'Cliente' ? (
+          // Dropdown para Cliente selecionar o status
           <select
             className="form-select me-2"
-            style={{ flex: '0 0 20%' }}
-            value={searchType}
-            onChange={(e) => setSearchType(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="clientName">Nome do Cliente</option>
-            <option value="bookTitle">Título do Livro</option>
+            <option value="todos">Todos</option>
+            <option value="reservado">Reservado</option>
           </select>
+        ) : (
+          // Input e dropdown de tipo de busca para Funcionário/Admin
+          <>
+            <input
+              type="text"
+              className="form-control me-2"
+              placeholder="Digite o ID de solicitação, cliente ou livro"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="form-select me-2"
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value)}
+            >
+              <option value="reservationId">ID de Solicitação</option>
+              <option value="clientId">ID do Cliente</option>
+              <option value="bookId">ID do Livro</option>
+            </select>
+          </>
+        )}
           <button type="submit" className="btn btn-primary">Buscar</button>
         </div>
         {errorMessage && <div className="alert alert-danger mt-3">{errorMessage}</div>}
@@ -223,19 +332,13 @@ const ReservationManagement = () => {
             {currentReservations.map((reservation) => (
               <tr key={reservation.id}>
                 <td>{reservation.id}</td>
-                <td>{reservation.clientName}</td>
-                <td>{reservation.bookTitle}</td>
-                <td>{reservation.reservationDate}</td>
-                <td>{reservation.dueDate}</td>
-                <td>{reservation.active ? 'Ativa' : 'Cancelada'}</td>
+                <td>{reservation.customerId}</td>
+                <td>{reservation.bookId}</td>
+                <td>{reservation.dataAprovacao}</td>
+                <td>{reservation.dataExpiracao}</td>
+                <td>{reservation.status}</td>
                 <td>
-                  <button className="btn btn-info me-2" onClick={() => handleViewDetails(reservation.id)}>Detalhes</button>
-                  <button className="btn btn-primary me-2" onClick={() => handleEditReservation(reservation)}>Editar</button>
-                  {reservation.active ? (
-                    <button className="btn btn-danger" onClick={() => handleCancelReservation(reservation.id)}>Cancelar</button>
-                  ) : (
-                    <button className="btn btn-success" onClick={() => handleReactivateReservation(reservation.id)}>Reativar</button>
-                  )}
+                <td>{renderActionButtons(reservation)}</td>
                 </td>
               </tr>
             ))}
@@ -256,11 +359,11 @@ const ReservationManagement = () => {
               </div>
               <div className="modal-body">
                 <p><strong>ID:</strong> {reservationDetails.id}</p>
-                <p><strong>Cliente:</strong> {reservationDetails.clientName}</p>
-                <p><strong>Livro:</strong> {reservationDetails.bookTitle}</p>
-                <p><strong>Data da Reserva:</strong> {reservationDetails.reservationDate}</p>
-                <p><strong>Data de Devolução:</strong> {reservationDetails.dueDate}</p>
-                <p><strong>Status:</strong> {reservationDetails.active ? 'Ativa' : 'Cancelada'}</p>
+                <p><strong>Cliente:</strong> {reservationDetails.customerId}</p>
+                <p><strong>Livro:</strong> {reservationDetails.bookId}</p>
+                <p><strong>Data da Reserva:</strong> {reservationDetails.dataAprovacao}</p>
+                <p><strong>Data de Devolução:</strong> {reservationDetails.dataExpiracao}</p>
+                <p><strong>Status:</strong> {reservationDetails.status}</p>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Fechar</button>
